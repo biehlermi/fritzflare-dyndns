@@ -51,15 +51,3 @@
 ```bash
 docker run -e CF_API_TOKEN=your_cloudflare_api_token fritzflare-dyndns
 ```
-
----
-
-## License
-
-MIT License
-
----
-
-## Contributing
-
-Pull requests and issues are welcome! Please open an issue to discuss your ideas or report bugs.
