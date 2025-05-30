@@ -1,7 +1,7 @@
 import logging
 import ipaddress
 from typing import Optional
-from app.config import CF_API_TOKEN
+from app.config import CLOUDFLARE_API_TOKEN
 from cloudflare import Cloudflare
 
 logger = logging.getLogger("fritzflare.cloudflare_api")
@@ -53,9 +53,9 @@ def update_dns_record(
     validate_ipv4_address(new_ip)
 
     if client is None:
-        client = Cloudflare(api_token=CF_API_TOKEN)
+        client = Cloudflare(api_token=CLOUDFLARE_API_TOKEN)
 
-    fqdn = zone_name if record_name == '@' else f"{record_name}.{zone_name}"
+    fqdn = zone_name
 
     try:
         zone_id = get_zone_id(client, zone_name)
