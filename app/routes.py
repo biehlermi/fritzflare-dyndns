@@ -32,12 +32,13 @@ def update():
     
     results = []
     errors = []
+    updated = False
+    nochg = False
     for entry in CLOUDFLARE_DNS_HOSTNAMES_LIST:
         # Determine zone and record
         parts = entry.split('.')
         if len(parts) < 2:
-            errors.append(f"Invalid entry: {entry}")
-            continue
+            return ("nohost", 200, {"Content-Type": "text/plain"})
         zone = '.'.join(parts[-2:])
         if entry == zone:
             record = '@'
@@ -45,28 +46,24 @@ def update():
             record = entry[:-(len(zone)+1)]  # Remove ".zone" from the end
         try:
             result = update_dns_records(zone, record, ipv4, ipv6, ipv6lanprefix=ipv6lanprefix)
-            if result.get("A"):
-                results.append({"zone": zone, "record": record, "type": "A", "result": result["A"]})
-            if result.get("AAAA"):
-                results.append({"zone": zone, "record": record, "type": "AAAA", "result": result["AAAA"]})
+            if result.get("A") or result.get("AAAA"):
+                updated = True
+            else:
+                nochg = True
         except InvalidIPAddressError as e:
             logger.warning(str(e))
-            if ipv4:
-                errors.append({"zone": zone, "record": record, "type": "A", "error": str(e)})
-            if ipv6 or (ipv6lanprefix and ipv6):
-                errors.append({"zone": zone, "record": record, "type": "AAAA", "error": str(e)})
+            return ("badagent", 200, {"Content-Type": "text/plain"})
         except ZoneNotFoundError:
             logger.warning(f"Zone not found: {zone}")
-            errors.append({"zone": zone, "record": record, "error": "Zone not found"})
+            return ("nohost", 200, {"Content-Type": "text/plain"})
         except RecordNotFoundError as e:
             logger.warning(str(e))
-            if ipv4:
-                errors.append({"zone": zone, "record": record, "type": "A", "error": str(e)})
-            if ipv6 or (ipv6lanprefix and ipv6):
-                errors.append({"zone": zone, "record": record, "type": "AAAA", "error": str(e)})
+            return ("nohost", 200, {"Content-Type": "text/plain"})
         except Exception as e:
             logger.exception("Unexpected error during DNS update")
-            errors.append({"zone": zone, "record": record, "error": "Internal server error"})
-    if errors:
-        return jsonify({"status": "partial", "results": results, "errors": errors}), 207
-    return jsonify({"status": "success", "results": results}), 200
+            return ("911", 200, {"Content-Type": "text/plain"})
+    if updated:
+        return ("good", 200, {"Content-Type": "text/plain"})
+    if nochg:
+        return ("nochg", 200, {"Content-Type": "text/plain"})
+    return ("911", 200, {"Content-Type": "text/plain"})
