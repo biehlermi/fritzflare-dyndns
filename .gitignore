@@ -1,4 +1,11 @@
+# Environment variable files
+.env
+.env.*
+
+# Python
 __pycache__/
 .pytest_cache/
+
+# IDE
 .vscode/
 .qodo/
