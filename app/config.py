@@ -20,13 +20,13 @@ if not CLOUDFLARE_API_TOKEN:
     logger.error("Required environment variable CLOUDFLARE_API_TOKEN is not set!")
     exit(1)
 
-CLOUDFLARE_IPV4_ZONES = os.environ.get("CLOUDFLARE_IPV4_ZONES")
-logger.info(f"CLOUDFLARE_IPV4_ZONES raw value: {CLOUDFLARE_IPV4_ZONES}")
+CLOUDFLARE_DNS_HOSTNAMES = os.environ.get("CLOUDFLARE_DNS_HOSTNAMES")
+logger.info(f"CLOUDFLARE_DNS_HOSTNAMES raw value: {CLOUDFLARE_DNS_HOSTNAMES}")
 
-if not CLOUDFLARE_IPV4_ZONES:
-    logger.error("Required environment variable CLOUDFLARE_IPV4_ZONES is not set!")
+if not CLOUDFLARE_DNS_HOSTNAMES:
+    logger.error("Required environment variable CLOUDFLARE_DNS_HOSTNAMES is not set!")
     exit(1)
 
-# Parse the zones as a list, stripping whitespace and ignoring empty entries
-CLOUDFLARE_IPV4_ZONES_LIST = [z.strip() for z in CLOUDFLARE_IPV4_ZONES.split(',') if z.strip()]
-logger.info(f"Parsed CLOUDFLARE_IPV4_ZONES_LIST: {CLOUDFLARE_IPV4_ZONES_LIST}")
+# Parse the hostnames as a list, stripping whitespace and ignoring empty entries
+CLOUDFLARE_DNS_HOSTNAMES_LIST = [z.strip() for z in CLOUDFLARE_DNS_HOSTNAMES.split(',') if z.strip()]
+logger.info(f"Parsed CLOUDFLARE_DNS_HOSTNAMES_LIST: {CLOUDFLARE_DNS_HOSTNAMES_LIST}")

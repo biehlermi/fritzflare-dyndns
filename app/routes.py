@@ -1,36 +1,38 @@
 import logging
 from flask import request, jsonify
 from app import app
-from app.config import CLOUDFLARE_IPV4_ZONES_LIST
-from app.cloudflare_api import update_dns_record, InvalidIPAddressError, ZoneNotFoundError, RecordNotFoundError
+from app.config import CLOUDFLARE_DNS_HOSTNAMES_LIST
+from app.cloudflare_api import update_dns_records, InvalidIPAddressError, ZoneNotFoundError, RecordNotFoundError
 
 logger = logging.getLogger("fritzflare.routes")
 
 def validate_update_request(data):
     ipv4 = data.get('ipv4')
+    ipv6 = data.get('ipv6')
+    ipv6lanprefix = data.get('ipv6lanprefix')
     errors = []
-    if not ipv4:
-        errors.append("Missing 'ipv4'")
-    return ipv4, errors
+    if not ipv4 and not ipv6 and not (ipv6lanprefix and ipv6):
+        errors.append("At least one of 'ipv4', 'ipv6', or both 'ipv6lanprefix' and 'ipv6' must be provided")
+    return ipv4, ipv6, ipv6lanprefix, errors
 
 @app.route('/update', methods=['GET'])
 def update():
     """
-    Update a Cloudflare DNS A record.
+    Update a Cloudflare DNS A and/or AAAA record.
     """
     if request.is_json:
         data = request.get_json()
     else:
         data = request.form or request.args
 
-    ipv4, errors = validate_update_request(data)
+    ipv4, ipv6, ipv6lanprefix, errors = validate_update_request(data)
     if errors:
         logger.warning(f"Update request missing parameters: {errors}")
         return jsonify({"status": "error", "message": ", ".join(errors)}), 400
-
+    
     results = []
     errors = []
-    for entry in CLOUDFLARE_IPV4_ZONES_LIST:
+    for entry in CLOUDFLARE_DNS_HOSTNAMES_LIST:
         # Determine zone and record
         parts = entry.split('.')
         if len(parts) < 2:
@@ -41,20 +43,27 @@ def update():
             record = '@'
         else:
             record = entry[:-(len(zone)+1)]  # Remove ".zone" from the end
-        logger.info(f"Updating: zone={zone}, record={record}, ipv4={ipv4}")
         try:
-            result = update_dns_record(zone, record, ipv4)
-            logger.info(f"DNS record updated: {result}")
-            results.append({"zone": zone, "record": record, "result": result})
-        except InvalidIPAddressError:
-            logger.warning(f"Invalid IPv4 address: {ipv4}")
-            errors.append({"zone": zone, "record": record, "error": "Invalid IPv4 address"})
+            result = update_dns_records(zone, record, ipv4, ipv6, ipv6lanprefix=ipv6lanprefix)
+            if result.get("A"):
+                results.append({"zone": zone, "record": record, "type": "A", "result": result["A"]})
+            if result.get("AAAA"):
+                results.append({"zone": zone, "record": record, "type": "AAAA", "result": result["AAAA"]})
+        except InvalidIPAddressError as e:
+            logger.warning(str(e))
+            if ipv4:
+                errors.append({"zone": zone, "record": record, "type": "A", "error": str(e)})
+            if ipv6 or (ipv6lanprefix and ipv6):
+                errors.append({"zone": zone, "record": record, "type": "AAAA", "error": str(e)})
         except ZoneNotFoundError:
             logger.warning(f"Zone not found: {zone}")
             errors.append({"zone": zone, "record": record, "error": "Zone not found"})
-        except RecordNotFoundError:
-            logger.warning(f"Record not found: {record} in zone {zone}")
-            errors.append({"zone": zone, "record": record, "error": "Record not found"})
+        except RecordNotFoundError as e:
+            logger.warning(str(e))
+            if ipv4:
+                errors.append({"zone": zone, "record": record, "type": "A", "error": str(e)})
+            if ipv6 or (ipv6lanprefix and ipv6):
+                errors.append({"zone": zone, "record": record, "type": "AAAA", "error": str(e)})
         except Exception as e:
             logger.exception("Unexpected error during DNS update")
             errors.append({"zone": zone, "record": record, "error": "Internal server error"})

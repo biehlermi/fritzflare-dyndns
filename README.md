@@ -5,7 +5,7 @@
 **Example:**
 
 ```
-CLOUDFLARE_IPV4_ZONES=example.com,www.example.com
+CLOUDFLARE_DNS_HOSTNAMES=example.com,www.example.com
 ```
 This will update the A record for `@` in zone `example.com` and the A record for `www` in zone `example.com`.
 
@@ -24,7 +24,7 @@ This will update the A record for `@` in zone `example.com` and the A record for
 | Variable                | Required | Description                                                        |
 |-------------------------|----------|--------------------------------------------------------------------|
 | `CLOUDFLARE_API_TOKEN`  | Yes      | Cloudflare API token with DNS edit permissions                     |
-| `CLOUDFLARE_IPV4_ZONES` | Yes      | Comma-separated list of hostnames/subdomains to update A records.  |
+| `CLOUDFLARE_DNS_HOSTNAMES` | Yes      | Comma-separated list of hostnames/subdomains to update A (IPv4) and AAAA (IPv6) records.  |
 
 ---
 
